@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="../three.js"></script>
+    <script src="../jquery-2.1.4.min.js"></script>
+    <script src="../stats.js"></script>
+    <script src="../dat.gui.js"></script>
+
+    <style>
+        /*#gl{*/
+        /*width: 600px;*/
+        /*height: 400px;*/
+        /*border: 1px solid #000;*/
+        /*}*/
+        /*html,body,#web{*/
+        /*width: 100%;*/
+        /*height: 100%;*/
+        /*}*/
+        html,body{
+            margin: 0;
+            padding: 0;
+        }
+        .button{
+            position: absolute;
+            right: 30px;
+            top: 30px;
+
+        }
+    </style>
+
+</head>
+<body>
+
+<div class="button">
+    <button id="btn1">点我</button>
+    <button id="btn2">点我</button>
+    <button id="btn3">点我</button>
+</div>
+<div></div>
+<!--<canvas id="gl"></canvas>-->
+<div id="web"></div>
+<script src="AsciiEffect.js"></script>
+<script>
+    ;(function () {
+
+//        var canvas = document.getElementById("gl"),
+//            ctx = canvas.getContext("2d"),
+//            w = canvas.clientWidth,
+//            h = canvas.clientHeight;
+
+        //定义场景
+        var scene = new THREE.Scene();
+
+        var camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
+
+        var renderer = new THREE.WebGLRenderer();
+
+        renderer.setClearColor("#eee",1);
+
+        renderer.setSize(window.innerWidth,window.innerHeight);
+
+        renderer.shadowMapEnabled = true;
+
+        // 轴辅助工具
+        var axes = new THREE.AxesHelper(20,.3);
+
+        scene.add(axes);
+
+        // 模型1
+        var planeGeometry = new THREE.PlaneGeometry(80,40,5,5);
+
+        var planeMaterial = new THREE.MeshLambertMaterial({color:"#888"});
+
+        var plane = new THREE.Mesh(planeGeometry,planeMaterial);
+
+        plane.rotation.x = -0.5 * Math.PI;
+
+        plane.position.x = 15;
+        plane.position.y = 0;
+        plane.position.z = 0;
+
+        plane.receiveShadow = true;
+
+        scene.add(plane);
+
+        // 模型2
+        var cubeGeometry = new THREE.CubeGeometry(4,4,4);
+
+        var cubeMaterial = new THREE.MeshLambertMaterial({color:"#ccc"});
+
+        var cube = new THREE.Mesh(cubeGeometry,cubeMaterial);
+
+        cube.rotation.x = -0.5 * Math.PI;
+
+        cube.position.x = -4;
+        cube.position.y = 3;
+        cube.position.z = 0;
+
+        cube.castShadow = true;
+
+        scene.add(cube);
+
+        //光
+        var light = new THREE.SpotLight("#fff");
+        light.position.set(-40,60,-10);
+
+        light.castShadow = true;
+
+        scene.add(light);
+
+        scene.overrideMaterial = new THREE.MeshLambertMaterial({color:"#fff"})
+        camera.position.x = -30;
+        camera.position.y = 40;
+        camera.position.z = 30;
+
+        camera.lookAt(0,0,0);
+
+//        $("#web").append(renderer.domElement);
+
+        $("#web").append(renderer.domElement);
+
+        //dat-gui
+        var controls = new function () {
+            this.rotationSpeed = 0.02;
+            this.bouncingSpeed = 0.03;
+            this.showNum = scene.children.length;
+            this.addCube = function () {
+                var a = Math.ceil(Math.random() * 5);
+
+                var cubeGeometry = new THREE.CubeGeometry(a,a,a);
+
+                var cubeMaterial = new THREE.MeshLambertMaterial({color:Math.random() * 0xffffff});
+
+                var cube = new THREE.Mesh(cubeGeometry,cubeMaterial);
+
+                cube.rotation.x = -0.5 * Math.PI;
+                cube.rotation.y = -0.5 * Math.PI;
+                cube.rotation.z = -0.5 * Math.PI;
+
+                cube.position.x = Math.ceil(Math.random() * 60) - 20;
+                cube.position.y = Math.ceil(Math.random() * 4);
+                cube.position.z = Math.ceil(Math.random() * 30) - 10;
+
+                cube.castShadow = true;
+
+                scene.add(cube);
+
+                cube.name = "cube-" + scene.children.length;
+
+                this.showNum = scene.children.length - 1;
+
+            };
+
+            this.remove = function () {
+                var allChildren = scene.children;
+                var lastObject = allChildren[allChildren.length - 1];
+                if (lastObject instanceof THREE.Mesh) {
+                    scene.remove(lastObject);
+                    this.showNum = scene.children.length;
+                }
+
+            };
+
+        }
+        var gui = new dat.GUI();
+        gui.add(controls,"rotationSpeed",0,0.5);
+        gui.add(controls,"bouncingSpeed",0,0.5);
+        gui.add(controls,"addCube");
+        gui.add(controls,"remove");
+        gui.add(controls,"showNum").listen();
+        var stats = initStats();
+
+        console.log( scene.fog)
+
+        function renderScene() {
+            stats.update();
+            cube.rotation.x += controls.rotationSpeed;
+            cube.rotation.y += controls.rotationSpeed;
+            cube.rotation.z += controls.rotationSpeed;
+//            scene.fog  = new THREE.Fog("#fff",controls.near,controls.far)
+
+
+            scene.traverse(function (e) {
+                if (e instanceof THREE.Mesh && e != plane) {
+                    e.rotation.x += controls.rotationSpeed;
+                    e.rotation.y += controls.rotationSpeed;
+                    e.rotation.z += controls.rotationSpeed;
+                }
+            });
+
+            requestAnimationFrame(renderScene);
+            renderer.render(scene,camera)
+        }
+        renderer.render(scene,camera)
+
+        function initStats() {
+            var stats = new Stats;
+            stats.setMode(0);
+            stats.domElement.style.position = "absolute";
+            stats.domElement.style.left = "0px";
+            stats.domElement.style.top = "0px";
+
+            $("#web").append(stats.domElement);
+
+            return stats;
+        }
+        renderScene()
+        console.log(scene)
+
+    }())
+
+
+</script>
+</body>
+</html>

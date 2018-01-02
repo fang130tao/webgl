@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="../three.js"></script>
+    <script src="../jquery-2.1.4.min.js"></script>
+    <script src="../stats.js"></script>
+    <script src="../dat.gui.js"></script>
+
+    <style>
+        html,body{
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+
+</head>
+<body>
+<div></div>
+<!--<canvas id="gl"></canvas>-->
+<div id="web"></div>
+<script>
+    ;(function () {
+
+        //定义场景
+        var scene = new THREE.Scene();
+
+        var camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
+
+        var renderer = new THREE.WebGLRenderer();
+
+        renderer.setClearColor("#eee",1);
+
+        renderer.setSize(window.innerWidth,window.innerHeight);
+
+        renderer.shadowMapEnabled = true;
+
+        // 轴辅助工具
+        var axes = new THREE.AxesHelper(20,.3);
+
+        scene.add(axes);
+
+        //光
+        var light = new THREE.SpotLight("#fff");
+        light.position.set(-40,60,-10);
+
+        light.castShadow = true;
+
+        scene.add(light);
+
+
+        // 模型1
+        var planeGeometry = new THREE.PlaneGeometry(80,40,5,5);
+
+        var planeMaterial = new THREE.MeshLambertMaterial({color:"#888",opacity: 0.6});
+
+        var plane = new THREE.Mesh(planeGeometry,planeMaterial);
+
+        plane.rotation.x = -0.5 * Math.PI;
+
+        plane.position.x = 15;
+        plane.position.y = 0;
+        plane.position.z = 0;
+
+        plane.receiveShadow = true;
+
+        scene.add(plane);
+
+        // 模型2
+        var cubeGeometry = new THREE.CubeGeometry(6,20,6);
+        var materials = new THREE.MeshLambertMaterial({opacity: 1, color: 0x44ff44, transparent: true});
+        var mesh =new THREE.Mesh(cubeGeometry, materials);
+//        mesh.castShadow = true
+
+        scene.add(mesh);
+
+        camera.position.x = -30;
+        camera.position.y = 40;
+        camera.position.z = 30;
+
+        camera.lookAt(0,0,0);
+
+//        $("#web").append(renderer.domElement);
+
+        $("#web").append(renderer.domElement);
+
+
+
+        function addControl(x,y,z,name) {
+            var controls = new function () {
+                this.name = name;
+                this[name + "X"] = x;
+                this[name + "Y"] = y;
+                this[name + "Z"] = z;
+            }
+            return controls
+        }
+        //dat-gui
+        var controlPoints = [];
+
+        var gui = new dat.GUI();
+        var stats = initStats();
+        var f1;
+        var arr = ["scale","position","rotation","translate"];
+        arr.forEach(function (t) {
+            controlPoints.push(addControl(0, 0, 0,t));
+        })
+        for(var i = 0 ; i < controlPoints.length ; i++){
+            f1 = gui.addFolder(controlPoints[i].name);
+            f1.add(controlPoints[i],controlPoints[i].name + "X",-20,20);
+            f1.add(controlPoints[i],controlPoints[i].name + "Y",-20,20);
+            f1.add(controlPoints[i],controlPoints[i].name + "Z",-20,20);
+        }
+
+
+        renderer.render(scene,camera)
+
+        console.log(controlPoints)
+        console.log(mesh)
+
+        function render() {
+            stats.update();
+//            for(var i = 0 ; i < controlPoints.length ; i++){
+//                let name = controlPoints[i].name;
+//                mesh[name].x =controlPoints[i][name + "X"];
+//                mesh[name].y =controlPoints[i][name + "Y"];
+//                mesh[name].z =controlPoints[i][name + "Z"];
+//            }
+
+
+
+            requestAnimationFrame(render);
+            renderer.render(scene,camera);
+        }
+        render()
+        function initStats() {
+            var stats = new Stats;
+            stats.setMode(0);
+            stats.domElement.style.position = "absolute";
+            stats.domElement.style.left = "0px";
+            stats.domElement.style.top = "0px";
+
+            $("#web").append(stats.domElement);
+
+            return stats;
+        }
+        console.log(scene)
+
+    }())
+
+
+</script>
+</body>
+</html>
