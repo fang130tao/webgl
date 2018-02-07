@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Example 04.02 - Depth Material</title>
+    <script type="text/javascript" src="../three.js"></script>
+    <script type="text/javascript" src="../stats.js"></script>
+    <script type="text/javascript" src="../dat.gui.js"></script>
+    <!--<script type="text/javascript" src="../d3-threeD.js"></script>-->
+    <script type="text/javascript" src="../OrbitControls.js"></script>
+    <!--<script type="text/javascript" src="../ParametricGeometries.js"></script>-->
+
+    <style>
+        body {
+            /* set margin to 0 and overflow to hidden, to go fullscreen */
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+
+<div id="Stats-output"></div>
+<!-- Div which will hold the Output -->
+<div id="WebGL-output"></div>
+
+<!-- Javascript code that runs our Three.js examples -->
+<script type="text/javascript">
+
+    let Sun,
+        Mercury,  //水星
+        Venus,  //金星
+        Earth,
+        Mars,
+        Jupiter, //木星
+        Saturn, //土星
+        Uranus, //天王
+        Neptune, //海王
+        stars = [],
+        planetArr = [];
+
+
+    // once everything is loaded, we run our Three.js stuff.
+    function init() {
+
+        var stats = initStats();
+
+        // create a scene, that will hold all our elements such as objects, cameras and lights.
+        var scene = new THREE.Scene();
+
+        // create a camera, which defines where we're looking at.
+        var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+        // 轴辅助工具
+        var axes = new THREE.AxesHelper(20,.3);
+
+        scene.add(axes);
+
+        // create a render and set the size
+        var renderer = new THREE.WebGLRenderer();
+
+        renderer.setClearColor(0xffffff, 0);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMapSoft = true; //柔和阴影
+        // position and point the camera to the center of the scene
+        camera.position.x = 0;
+        camera.position.y = 0;
+        camera.position.z = 300;
+        camera.lookAt(new THREE.Vector3(600,0,100));
+        scene.add(camera);
+
+        orbit = new THREE.OrbitControls(camera, renderer.domElement);
+        
+        var _Controller = {
+            init:function (r,material,name,alpha) {
+                this.initX++
+                let o = new CreatSphereGeometry(r,this.initX,material,name,alpha);
+                o.init();
+                _Controller.planetArr.push(o);
+                scene.add(o.plane);
+                return o;
+            },
+            planetArr:[],
+            initX:-1,
+        }
+
+        function CreatSphereGeometry(r,x,material,name,alpha) {
+            this.r = r;
+            this.x = x * 70;
+            this.name = name;
+            this.material = material;
+            this.initAlpha = 0;
+            this.alpha = alpha;
+            this.plane = {};
+            this.rotateRadius = x * 70;
+            
+            this.init = function () {
+                var plane;
+                if(this.name){
+                    /*sun skin pic*/
+                    let sunSkinPic = THREE.ImageUtils.loadTexture('1.jpg', {}, function() {
+                        renderer.render(scene, camera);
+                    });
+                    /*sun*/
+                    plane = new THREE.Mesh( new THREE.SphereGeometry( 12 ,16 ,16 ),
+                        new THREE.MeshLambertMaterial({
+                            /*color: 0xffff00,*/
+                            emissive: 0xdd4422,
+                            map: sunSkinPic
+                        })
+                    );
+                }else {
+                    var sphereGeometry = new THREE.SphereGeometry(r,30,30);
+                    var planeMaterial = new THREE.MeshBasicMaterial({color:this.material});
+                    plane = new THREE.Mesh(sphereGeometry,planeMaterial);
+
+                }
+                var random = Math.random * 2 * Math.PI;
+                plane.position.x = this.rotateRadius * Math.cos(random);
+                plane.position.z = this.rotateRadius * Math.sin(random);
+                this.plane =  plane;
+                this.initPlanet()
+            }
+            this.initPlanet = function () {
+                initPlanet(this.rotateRadius + r/2)
+            }
+
+            this.move = function () {
+                this.initAlpha += this.alpha;
+                this.plane.position.x = this.rotateRadius * Math.cos(this.initAlpha);
+                this.plane.position.z = this.rotateRadius * Math.sin(this.initAlpha);
+            }
+        }
+        Sun = _Controller.init(25,"red","Sun",0)
+        Mercury = _Controller.init(5,"red","",.002)
+        Venus = _Controller.init(12,"orange","",.006)
+        Earth = _Controller.init(12,"skyblue","",.01)
+        Mars = _Controller.init(6,"red","",.006)
+        Jupiter = _Controller.init(20,"#ccc","",.0009)
+        Saturn = _Controller.init(20,"#666","",.003)
+        Uranus = _Controller.init(16,"green","",.005)
+        Neptune = _Controller.init(6,"red","",.007)
+
+        document.getElementById("WebGL-output").appendChild(renderer.domElement);
+
+//环境光
+        let ambient = new THREE.AmbientLight(0x999999);
+        scene.add(ambient);
+
+        /*太阳光*/
+        let sunLight = new THREE.PointLight(0xddddaa,1.5,500);
+        scene.add(sunLight);
+        render();
+        console.log(new THREE.RingGeometry)
+        function initPlanet(distance) {
+            /*轨道*/
+            let track = new THREE.Mesh( new THREE.RingGeometry (distance, distance, 64,1),
+                new THREE.MeshBasicMaterial( { color: 0x888888, side: THREE.DoubleSide } )
+            );
+            track.rotation.x = - Math.PI / 2;
+            scene.add(track);
+        }
+        var alpha = 0;
+        function render() {
+            stats.update();
+            orbit.update();
+
+            for(let i of _Controller.planetArr){
+                i.move();
+            }
+
+            requestAnimationFrame(render);
+            renderer.render(scene, camera);
+        }
+
+
+        function initStats() {
+
+            var stats = new Stats();
+
+            stats.setMode(0); // 0: fps, 1: ms
+
+            // Align top-left
+            stats.domElement.style.position = 'absolute';
+            stats.domElement.style.left = '0px';
+            stats.domElement.style.top = '0px';
+
+            document.getElementById("Stats-output").appendChild(stats.domElement);
+
+            return stats;
+        }
+    }
+    window.onload = init;
+</script>
+</body>
+</html>

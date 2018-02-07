@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Example 04.02 - Depth Material</title>
+    <script type="text/javascript" src="../three.js"></script>
+    <script type="text/javascript" src="../stats.js"></script>
+    <script type="text/javascript" src="../dat.gui.js"></script>
+    <!--<script type="text/javascript" src="../d3-threeD.js"></script>-->
+    <script type="text/javascript" src="../OrbitControls.js"></script>
+
+    <style>
+        body {
+            /* set margin to 0 and overflow to hidden, to go fullscreen */
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+<div id="Stats-output">
+</div>
+<!-- Div which will hold the Output -->
+<div id="WebGL-output">
+</div>
+
+<!-- Javascript code that runs our Three.js examples -->
+<script type="text/javascript">
+
+    // once everything is loaded, we run our Three.js stuff.
+    function init() {
+
+        var stats = initStats();
+
+        // create a scene, that will hold all our elements such as objects, cameras and lights.
+        var scene = new THREE.Scene();
+
+        // create a camera, which defines where we're looking at.
+        var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 10, 130);
+
+        // 轴辅助工具
+        var axes = new THREE.AxesHelper(20,.3);
+
+        scene.add(axes);
+
+        // create a render and set the size
+        var renderer = new THREE.WebGLRenderer();
+
+        renderer.setClearColor(new THREE.Color(0x000, 1.0));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+
+        // position and point the camera to the center of the scene
+        camera.position.x = -30;
+        camera.position.y = 40;
+        camera.position.z = 30;
+        camera.lookAt(0,0,0);
+
+        orbit = new THREE.OrbitControls(camera, renderer.domElement);
+
+        var planeGeometry = new THREE.PlaneGeometry(80,40,5,5);
+        var planeMaterial = new THREE.MeshLambertMaterial({color:"#888"});
+        var plane = new THREE.Mesh(planeGeometry,planeMaterial);
+
+        plane.rotation.x = -0.5 * Math.PI;
+
+        plane.position.x = 15;
+        plane.position.y = 0;
+        plane.position.z = 0;
+
+        plane.receiveShadow = true;
+
+//        scene.add(plane);
+
+        // the points group
+        var spGroup;
+        // the mesh
+        var latheMesh;
+
+        function generatePoints(segments,phiStart,phiLength) {
+            scene.remove(spGroup);
+            scene.remove(latheMesh);
+
+            var points = [];
+            var height = 5;
+            var count = 30;
+            for (var i = 0; i < count; i++) {
+                points.push(new THREE.Vector3((Math.sin(i * 0.2) + Math.cos(i * 0.3)) * height + 12, 0, ( i - count ) + count / 2));
+            }
+
+            spGroup = new THREE.Object3D();
+            var material = new THREE.MeshBasicMaterial({color: 0xff0000, transparent: false});
+            points.forEach(function (point) {
+                var spGeom = new THREE.SphereGeometry(0.2);
+                var spMesh = new THREE.Mesh(spGeom, material);
+                spMesh.position.copy(point);
+                spGroup.add(spMesh);
+            });
+            // add the points as a group to the scene
+            scene.add(spGroup);
+
+            // use the same points to create a LatheGeometry
+            var latheGeometry = new THREE.LatheGeometry(points, segments, phiStart, phiLength);
+            latheMesh = createMesh(latheGeometry);
+
+            scene.add(latheMesh);
+        }
+
+
+        function createMesh(geom) {
+
+            // assign two materials
+            var meshMaterial = new THREE.MeshBasicMaterial({color: 0x00ff00, transparent: true, opacity: 0.2});
+            meshMaterial.side = THREE.DoubleSide;
+            var wireFrameMat = new THREE.MeshBasicMaterial();
+            wireFrameMat.wireframe = true;
+
+            // create a multimaterial
+            var mesh = THREE.SceneUtils.createMultiMaterialObject(geom, [meshMaterial, wireFrameMat]);
+
+            return mesh;
+        }
+
+
+        var controls = new function () {
+            // we need the first child, since it's a multimaterial
+
+            this.segments = 12;
+            this.phiStart = 0;
+            this.phiLength = 2 * Math.PI;
+
+            this.redraw = function () {
+                scene.remove(spGroup);
+                scene.remove(latheMesh);
+                generatePoints(controls.segments, controls.phiStart, controls.phiLength);
+            };
+        };
+
+        var gui = new dat.GUI();
+        gui.add(controls, 'segments', 0, 50).step(1).onChange(controls.redraw);
+        gui.add(controls, 'phiStart', 0, 2 * Math.PI).onChange(controls.redraw);
+        gui.add(controls, 'phiLength', 0, 2 * Math.PI).onChange(controls.redraw);
+
+
+
+        //光
+        var light = new THREE.SpotLight("#fff");
+
+        light.position.set(-20,60,-10);
+
+        light.castShadow = true;
+//
+        scene.add(light);
+
+
+        document.getElementById("WebGL-output").appendChild(renderer.domElement);
+
+
+        var controls = new function () {
+            this.segments = 12;
+            this.phiStart = 0;
+            this.phiLength = 2 * Math.PI;
+            this.rotationSpeed = 0.01;
+        };
+        generatePoints(12, 2, 2 * Math.PI)
+
+        var f1 = new dat.GUI();
+        f1.add(controls,"rotationSpeed",0,0.1);
+
+
+        render();
+
+        function render() {
+            stats.update();
+
+            orbit.update();
+            latheMesh.rotation.y += controls.rotationSpeed;
+            latheMesh.rotation.x += controls.rotationSpeed;
+            spGroup.rotation.y += controls.rotationSpeed;
+            spGroup.rotation.x += controls.rotationSpeed;
+//            hullMesh.rotation.y = step += 0.01;
+
+            // rotate the cubes around its axes
+
+            // render using requestAnimationFrame
+            requestAnimationFrame(render);
+            renderer.render(scene, camera);
+        }
+
+        function initStats() {
+
+            var stats = new Stats();
+
+            stats.setMode(0); // 0: fps, 1: ms
+
+            // Align top-left
+            stats.domElement.style.position = 'absolute';
+            stats.domElement.style.left = '0px';
+            stats.domElement.style.top = '0px';
+
+            document.getElementById("Stats-output").appendChild(stats.domElement);
+
+            return stats;
+        }
+    }
+    window.onload = init;
+</script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Example 04.02 - Depth Material</title>
+    <script type="text/javascript" src="../three.js"></script>
+
+    <script type="text/javascript" src="../stats.js"></script>
+    <script type="text/javascript" src="../dat.gui.js"></script>
+    <style>
+        body {
+            /* set margin to 0 and overflow to hidden, to go fullscreen */
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+<div id="Stats-output">
+</div>
+<!-- Div which will hold the Output -->
+<div id="WebGL-output">
+</div>
+
+<!-- Javascript code that runs our Three.js examples -->
+<script type="text/javascript">
+
+    // once everything is loaded, we run our Three.js stuff.
+    function init() {
+
+        var stats = initStats();
+
+        // create a scene, that will hold all our elements such as objects, cameras and lights.
+        var scene = new THREE.Scene();
+
+        // create a camera, which defines where we're looking at.
+        var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 10, 130);
+
+        // 轴辅助工具
+        var axes = new THREE.AxesHelper(20,.3);
+
+        scene.add(axes);
+
+        // create a render and set the size
+        var renderer = new THREE.WebGLRenderer();
+
+        renderer.setClearColor(0x00000, 1.0);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+
+        // position and point the camera to the center of the scene
+        camera.position.x = -30;
+        camera.position.y = 40;
+        camera.position.z = 30;
+        camera.lookAt(0,0,0);
+
+        var planeGeometry = new THREE.PlaneGeometry(80,40,5,5);
+        var planeMaterial = new THREE.MeshLambertMaterial({color:"#888"});
+        var plane = new THREE.Mesh(planeGeometry,planeMaterial);
+
+        plane.rotation.x = -0.5 * Math.PI;
+
+        plane.position.x = 15;
+        plane.position.y = 0;
+        plane.position.z = 0;
+
+        plane.receiveShadow = true;
+
+//        scene.add(plane);
+
+
+        var sphereGeometry = new THREE.SphereGeometry(10, 30, 30);
+        var cubeGeometry = new THREE.BoxGeometry(15, 15, 15);
+
+
+        var meshMaterial = new THREE.MeshNormalMaterial({color:"#888"});
+        var sphere = new THREE.Mesh(sphereGeometry, meshMaterial);
+        var cube = new THREE.Mesh(cubeGeometry, meshMaterial);
+        // add the output of the renderer to the html element
+        sphere.position.x = -4;
+        sphere.position.y = 3;
+        sphere.position.z = 0;
+
+        sphere.castShadow = true;
+
+        scene.add(sphere)
+
+        //光
+        var light = new THREE.SpotLight("#fff");
+
+        light.position.set(-20,60,-10);
+
+        light.castShadow = true;
+//
+        scene.add(light);
+
+        document.getElementById("WebGL-output").appendChild(renderer.domElement);
+
+
+        var controls = new function () {
+            this.opacity = 0.6;
+            this.transparent = false;
+            this.wireframe = false;
+            this.wireframeLine = 1;
+            this.visible = true;
+            this.rotationSpeed = 0.02;
+            this.side = "front";
+            this.selectedMesh = "cube";
+            this.shadow = "smooth";
+        };
+
+        var gui = new dat.GUI();
+        var f1 = gui.addFolder("Mesh");
+        f1.add(controls,"rotationSpeed",0,0.5);
+
+        f1.add(controls,"opacity",0,1).onChange(function (e1) {
+            scene.traverse(function (e) {
+                if (e instanceof THREE.Mesh && e != plane) {
+                    e.opacity = e1
+                }
+            });
+        })
+
+        f1.add(controls,"transparent").onChange(function (e1) {
+            scene.traverse(function (e) {
+                if (e instanceof THREE.Mesh && e != plane) {
+                    e.material.transparent = e1
+                }
+            });
+
+        })
+        scene.traverse(function (e) {
+            if (e instanceof THREE.Mesh && e != plane) {
+                console.log(e)
+            }
+        });
+        f1.add(controls,"wireframe").onChange(function (e1) {
+            scene.traverse(function (e) {
+                if (e instanceof THREE.Mesh && e != plane) {
+                    e.material.wireframe = e1
+                }
+            });
+
+        })
+        f1.add(controls,"wireframeLine",0,10).onChange(function (e) {
+
+        })
+
+        f1.add(controls,"visible").onChange(function (e1) {
+            scene.traverse(function (e) {
+                if (e instanceof THREE.Mesh && e != plane) {
+                    e.visible = e1
+                }
+            });
+        })
+        f1.add(controls,"shadow",["smooth", "flat"]).onChange(function (e1) {
+            meshMaterial.flatShading = e1 !== "flat" ? true : false;
+            console.log(meshMaterial)
+            meshMaterial.needsUpdate = true;
+        })
+
+        f1.add(controls,"side",["front", "back", "double"]).onChange(function (e) {
+            switch (e) {
+                case "front":
+                    meshMaterial.side = THREE.FrontSide;
+                    break;
+                case "back":
+                    meshMaterial.side = THREE.BackSide;
+                    break;
+                case "double":
+                    meshMaterial.side = THREE.DoubleSide;
+                    break;
+            }
+//            meshMaterial.needsUpdate = true;
+
+            console.log(meshMaterial)
+        })
+
+        f1.add(controls,"selectedMesh",["sphere", "cube"]).onChange(function (e) {
+            scene.remove(sphere);
+            scene.remove(cube);
+            switch (e) {
+                case "sphere":
+                    scene.add(sphere);
+                    break;
+                case "cube":
+                    scene.add(cube);
+                    break;
+            }
+        })
+
+
+        render();
+
+        function render() {
+            stats.update();
+
+            // rotate the cubes around its axes
+            scene.traverse(function (e) {
+                if (e instanceof THREE.Mesh && e != plane) {
+                    e.rotation.y += controls.rotationSpeed;
+                }
+            });
+
+            // render using requestAnimationFrame
+            requestAnimationFrame(render);
+            renderer.render(scene, camera);
+        }
+
+        function initStats() {
+
+            var stats = new Stats();
+
+            stats.setMode(0); // 0: fps, 1: ms
+
+            // Align top-left
+            stats.domElement.style.position = 'absolute';
+            stats.domElement.style.left = '0px';
+            stats.domElement.style.top = '0px';
+
+            document.getElementById("Stats-output").appendChild(stats.domElement);
+
+            return stats;
+        }
+    }
+    window.onload = init;
+</script>
+</body>
+</html>

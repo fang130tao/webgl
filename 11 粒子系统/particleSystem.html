@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Example 04.02 - Depth Material</title>
+    <script type="text/javascript" src="../three.js"></script>
+    <script type="text/javascript" src="../stats.js"></script>
+    <script type="text/javascript" src="../dat.gui.js"></script>
+    <!--<script type="text/javascript" src="../d3-threeD.js"></script>-->
+    <script type="text/javascript" src="../OrbitControls.js"></script>
+    <!--<script type="text/javascript" src="../ParametricGeometries.js"></script>-->
+
+    <style>
+        body {
+            /* set margin to 0 and overflow to hidden, to go fullscreen */
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+
+<div id="Stats-output"></div>
+<!-- Div which will hold the Output -->
+<div id="WebGL-output"></div>
+
+<!-- Javascript code that runs our Three.js examples -->
+<script type="text/javascript">
+
+    // once everything is loaded, we run our Three.js stuff.
+    function init() {
+
+        var stats = initStats();
+
+        // create a scene, that will hold all our elements such as objects, cameras and lights.
+        var scene = new THREE.Scene();
+
+        // create a camera, which defines where we're looking at.
+        var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 10, 130);
+
+        // 轴辅助工具
+        var axes = new THREE.AxesHelper(20,.3);
+
+        scene.add(axes);
+
+        // create a render and set the size
+        var renderer = new THREE.WebGLRenderer();
+
+        renderer.setClearColor(new THREE.Color(0x000000, 1.0));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+
+        // position and point the camera to the center of the scene
+        camera.position.x = -30;
+        camera.position.y = 40;
+        camera.position.z = 30;
+        camera.lookAt(0,0,0);
+
+        orbit = new THREE.OrbitControls(camera, renderer.domElement);
+
+        var planeGeometry = new THREE.PlaneGeometry(80,40,5,5);
+        var planeMaterial = new THREE.MeshLambertMaterial({color:"#888"});
+        var plane = new THREE.Mesh(planeGeometry,planeMaterial);
+
+        plane.rotation.x = -0.5 * Math.PI;
+
+        plane.position.x = 15;
+        plane.position.y = 0;
+        plane.position.z = 0;
+
+        plane.receiveShadow = true;
+
+//        scene.add(plane);
+
+        function createParticles(size,transparent,opacity,
+        vertexColors, sizeAttenuation,color) {
+            var material = new THREE.ParticleBasicMaterial({
+                size: size,
+                transparent: transparent,
+                opacity: opacity,
+                vertexColors: vertexColors,
+                sizeAttenuation: sizeAttenuation,
+                color: color
+            })
+
+            var geom = new THREE.Geometry();
+
+            var range = 500;
+
+            for(let i = 0; i < 15000; i++){
+                let paricle = new THREE.Vector3(
+                    Math.random() * range - range/2,
+                    Math.random() * range - range/2,
+                    Math.random() * range - range/2
+                )
+                geom.vertices.push(paricle);
+                var color = new THREE.Color("#00ff00");
+                color.setHSL(color.getHSL().h,color.getHSL().s,Math.random() * color.getHSL().l);
+                geom.colors.push(color)
+            }
+
+            var system = new THREE.ParticleSystem(geom,material);
+            scene.add(system);
+        }
+
+        createParticles(5,false,1,false,true,"red")
+        // the points group
+
+        var options = {
+            size:90
+        }
+        var gui = new dat.GUI();
+//        gui.add(controls, 'segments', 0, 50).step(1).onChange(controls.redraw);
+//        gui.add(controls, 'phiStart', 0, 2 * Math.PI).onChange(controls.redraw);
+//        gui.add(controls, 'phiLength', 0, 2 * Math.PI).onChange(controls.redraw);
+
+
+
+        //光
+        var light = new THREE.SpotLight("#fff");
+
+        light.position.set(-20,60,-10);
+
+        light.castShadow = true;
+//
+//        scene.add(light);
+
+
+        document.getElementById("WebGL-output").appendChild(renderer.domElement);
+
+
+        var controls = new function () {
+            this.size = 90;
+            this.height = 90;
+            this.bevelThickness = 2;
+            this.bevelSize = 0.5;
+            this.bevelEnabled = true;
+            this.bevelSegments = 3;
+            this.bevelEnabled = true;
+            this.curveSegments = 12;
+            this.steps = 1;
+            this.font = "helvetiker";
+            this.weight = "normal";
+        };
+
+        var options = {};
+
+        for(var i in controls){
+            if(controls.hasOwnProperty(i)){
+                options[i] = controls[i];
+            }
+        }
+
+
+        var f1 = new dat.GUI();
+//        f1.add(controls,"rotationSpeed",0,0.1);
+
+        function createMesh(geom) {
+
+            // assign two materials
+            var meshMaterial = new THREE.MeshBasicMaterial({color : 0x00ff00, transparent : true, opacity : 0.2});
+            meshMaterial.side = THREE.DoubleSide;
+            var wireFrameMat = new THREE.MeshBasicMaterial();
+            wireFrameMat.wireframe = true;
+
+            // create a multimaterial
+            var mesh = THREE.SceneUtils.createMultiMaterialObject(geom, [meshMaterial, wireFrameMat]);
+        }
+        render();
+
+        function render() {
+            stats.update();
+            orbit.update();
+            requestAnimationFrame(render);
+            renderer.render(scene, camera);
+        }
+
+        function initStats() {
+
+            var stats = new Stats();
+
+            stats.setMode(0); // 0: fps, 1: ms
+
+            // Align top-left
+            stats.domElement.style.position = 'absolute';
+            stats.domElement.style.left = '0px';
+            stats.domElement.style.top = '0px';
+
+            document.getElementById("Stats-output").appendChild(stats.domElement);
+
+            return stats;
+        }
+    }
+    window.onload = init;
+</script>
+</body>
+</html>
